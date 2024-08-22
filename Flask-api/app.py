@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, render_template
-from ultralytics import YOLO
 from PIL import Image
 import pandas as pd
 from fuzzywuzzy import process
@@ -8,6 +7,7 @@ import requests
 from io import BytesIO
 import logging
 import base64
+from inference_sdk import InferenceHTTPClient
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -15,8 +15,11 @@ CORS(app)  # Enable CORS for all routes
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Load the pre-trained YOLOv8 model
-model = YOLO('yolov8n-seg.pt')  # Ensure you have the appropriate model variant
+# Initialize the InferenceHTTPClient
+CLIENT = InferenceHTTPClient(
+    api_url="https://detect.roboflow.com",
+    api_key="w4AqOlXWwXuokbcGCWR8"  # Replace with your actual API key
+)
 
 # Load the Excel file
 df = pd.read_excel('RecipeData.xlsx')
@@ -65,13 +68,14 @@ def predict():
         else:
             img = Image.open(file.stream).convert('RGB')
 
-        results = model(img)
+        # Use the custom inference model
+        result = CLIENT.infer(img, model_id="smart-recipe/8")
 
         # Parse the results
         object_names = []
-        for result in results:
-            for box in result.boxes:
-                object_names.append(result.names[int(box.cls)])
+        if "predictions" in result and isinstance(result["predictions"], list):
+            for prediction in result["predictions"]:
+                object_names.append(prediction["class"])  # Extract the 'class' key
         
         # Join the object names into a single string
         ingredient_query = ", ".join(object_names)

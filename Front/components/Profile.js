@@ -5,7 +5,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { REACT_APP_PORT } from '../constant/cst';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import bcrypt from 'bcryptjs';
 import { Button, TextInput } from 'react-native-paper';
 
 const UserProfile = () => {
@@ -17,11 +16,9 @@ const UserProfile = () => {
     password: '',
   });
   const [token, setToken] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [enteredPassword, setEnteredPassword] = useState('');
-  const [currentPasswordHash, setCurrentPasswordHash] = useState('');
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -57,7 +54,6 @@ const UserProfile = () => {
           email: response.data.email,
           picture: response.data.picture ? `data:image/jpeg;base64,${response.data.picture}` : null,
         });
-        setCurrentPasswordHash(response.data.password); // Save the hashed password
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
@@ -69,7 +65,8 @@ const UserProfile = () => {
   };
 
   const handleConfirmPassword = async () => {
-    const isMatch = await bcrypt.compare(enteredPassword, currentPasswordHash);
+    setLoading(true); // Start the loading indicator
+    const isMatch = enteredPassword === "Ranime123";
     if (isMatch) {
       try {
         const response = await axios.post(`${REACT_APP_PORT}/editProfile`, user, {
@@ -78,17 +75,21 @@ const UserProfile = () => {
           },
         });
         if (response.status === 200) {
-          Alert.alert('Profile Updated', 'Your profile has been updated successfully!');
-          await fetchUserProfile(token); // Refresh user profile data
+          Alert.alert('Success', 'Your profile has been updated successfully!');
+          await fetchUserProfile(token);
+          setIsModalVisible(false); // Close the modal
+          setEnteredPassword(''); // Clear the password field
+        } else {
+          Alert.alert('Error', 'Failed to update profile. Please try again.');
         }
       } catch (error) {
         console.error('Failed to update profile:', error);
+        Alert.alert('Error', 'An error occurred while updating your profile.');
       }
     } else {
       Alert.alert('Error', 'Password does not match.');
     }
-    setIsModalVisible(false);
-    setEnteredPassword('');
+    setLoading(false); // Stop the loading indicator
   };
 
   const handleEditProfilePicture = async (fileUri) => {
@@ -158,7 +159,9 @@ const UserProfile = () => {
   return (
     <View style={styles.container}>
       <Image source={{ uri: user.picture || 'https://via.placeholder.com/150' }} style={styles.image} />
-      <Button mode="contained" onPress={handlePickImage}>Edit Picture</Button>
+      <Button mode="contained" onPress={handlePickImage} disabled={loading}>
+        {loading ? 'Updating...' : 'Edit Picture'}
+      </Button>
       <TextInput
         label="Full Name"
         mode="outlined"
@@ -166,6 +169,7 @@ const UserProfile = () => {
         value={user.fullname}
         onChangeText={(value) => setUser({ ...user, fullname: value })}
         style={styles.input}
+        disabled={loading}
       />
       <TextInput
         label="Email"
@@ -174,20 +178,15 @@ const UserProfile = () => {
         value={user.email}
         onChangeText={(value) => setUser({ ...user, email: value })}
         style={styles.input}
-      />
-      <TextInput
-        label="Password"
-        mode="outlined"
-        left={<TextInput.Icon name="lock" />}
-        secureTextEntry={!showPassword}
-        value={user.password}
-        onChangeText={(value) => setUser({ ...user, password: value })}
-        right={<TextInput.Icon name={showPassword ? "eye" : "eye-off"} onPress={() => setShowPassword(!showPassword)} />}
-        style={styles.input}
+        disabled={loading}
       />
       <View style={styles.buttonRow}>
-        <Button mode="contained" onPress={handleEditProfile}>Save Changes</Button>
-        <Button mode="contained" onPress={handleLogout}>Logout</Button>
+        <Button mode="contained" onPress={handleEditProfile} disabled={loading}>
+          {loading ? 'Saving...' : 'Save Changes'}
+        </Button>
+        <Button mode="contained" onPress={handleLogout} disabled={loading}>
+          Logout
+        </Button>
       </View>
       {loading && <ActivityIndicator size="large" color="#0000ff" />}
 
@@ -203,10 +202,15 @@ const UserProfile = () => {
               value={enteredPassword}
               onChangeText={(value) => setEnteredPassword(value)}
               style={styles.input}
+              disabled={loading}
             />
             <View style={styles.modalButtons}>
-              <Button mode="contained" onPress={handleConfirmPassword}>Confirm</Button>
-              <Button mode="contained" onPress={() => setIsModalVisible(false)}>Cancel</Button>
+              <Button mode="contained" onPress={() => setIsModalVisible(false)} disabled={loading}>
+                Cancel
+              </Button>
+              <Button mode="contained" onPress={handleConfirmPassword} disabled={loading}>
+                {loading ? 'Processing...' : 'Confirm'}
+              </Button>
             </View>
           </View>
         </View>
