@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "wakalni",
+    "slug": "wakalni",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/wakalni.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/wakalni.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0000"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/wakalni.png",
+        "backgroundColor": "#0000"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "wakalni" 
+      }
+    }
+  }
+}
